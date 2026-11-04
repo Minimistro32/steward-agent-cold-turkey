@@ -1,0 +1,13 @@
+# Build outputs and local packages
+**/bin/
+**/obj/
+/artifacts/
+*.nupkg
+*.snupkg
+# Local experiments, exports, credentials, and commercial binaries
+/tests/
+/local/
+.env
+.env.*
+*.log
+.DS_Store
