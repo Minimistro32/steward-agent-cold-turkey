@@ -1,88 +1,58 @@
-# Cold Turkey feasibility: crash-safe usage grants
+# Steward Cold Turkey Agent — alpha.8
 
-Investigation date: 2026-11-03. Status: **static investigation complete enough to begin Mac checks; live feasibility unverified**. No production agent, generator, server, or frontend changes are included.
+A per-user Cold Turkey agent for Steward. macOS alpha.8 includes the Steward icon, a double-click app that opens the Terminal menu, and a persistent data folder outside the signed app. The alpha.7 background connection succeeded on the user's Mac; alpha.8 Developer ID signing and Finder/DMG behavior still require Mac validation.
 
-## Decision
+## macOS signing and installation
 
-The midnight baseline design is supported by user verification of overlap precedence, automatic restoration including sleep/logout, intended preset reuse, and safe renewal ordering. Each new grant must explicitly cycle the selected allowance preset off/on under an enabled baseline. See the authoritative [updated design](docs/baseline-autostart.md).
+The generated archive is **preparation output, not a signed distribution**. Complete these steps on the Mac holding your Developer ID Application certificate and private key:
 
-Unused minutes may be forfeited at the daily cutoff. A proposed 03:45 cutoff remains unverified: baseline restoration must stay aligned with allowance renewal. Import generation, exact CLI behavior, independent exhaustion, and credential limitations remain open. The static matrix below records the initial investigation; user-confirmed results supersede its pending overlap/midnight entries.
+1. Extract the archive and read `SIGNING-AND-INSTALL.txt`.
+2. Run `Sign Steward.command`. It requires a valid Developer ID Application identity, signs with hardened runtime and the .NET JIT entitlement, timestamps the signature, and verifies the certificate/team and bundle. There is no ad-hoc fallback.
+3. Run `Create DMG.command` to create the drag-to-Applications image and checksum from the verified app. The contained app is signed; notarization is deferred.
+4. Uninstall old login startup from its old release before migrating alpha.7 or earlier. Stop any foreground run and retain the old config.json.
+5. Open the DMG, copy the app to `/Applications` (or `~/Applications` if needed), eject the image, and double-click the installed app.
+6. Choose **Import existing config** to preserve IDs/settings, or **Connection settings** to start fresh. Then **Install login startup**.
 
-The next step is the [guided Mac procedure](docs/mac-test-procedure.md). Record evidence in [results](docs/results.md). The [CLI reference](docs/cold-turkey-cli.md) describes embedded help, not commands executed on a Mac.
+Users of the finished DMG do not need signing certificates. Developer ID signing alone does not guarantee Gatekeeper approval without notarization. Never edit bundle contents after signing. No Icon Composer project is needed for the included SVG-derived `.icns`.
 
-## Evidence and capability matrix
+Certificate directions: [Apple Developer ID](https://developer.apple.com/help/account/certificates/create-developer-id-certificates), [certificate signing request](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request). The private key stays on the signing Mac.
 
-Evidence levels: **embedded** means readable help or strings in the supplied executable; **documented** means vendor documentation; **observed** requires execution on the target Mac. Static absence is not proof that an undocumented capability cannot exist.
+## Data and configuration
 
-| Capability | Evidence | Conclusion / remaining check |
-| --- | --- | --- |
-| CLI start, stop, status, list | Embedded help | Leading dash required by advertised syntax; runtime pending |
-| Create website block and add targets | Embedded `-add-block`, `-add ... -web` | No advertised allowance setter; creation alone does not provision presets |
-| Preserve configured settings | Embedded `-start ... -as-is` | Must test allowance, lock, and account scope preservation |
-| Set allowance via CLI | Not found in embedded help | Unverified; do not invent an option |
-| Unattended import/export | No advertised CLI option; import/export UI strings present | No verified unattended interface |
-| Manual full-block import/export | Documented UI feature | Actual file format and merge/replacement behavior unknown |
-| Generated presets | No real export supplied | Generator intentionally withheld until safe roundtrip validation |
-| Enabled versus disabled status | Embedded `-status` help | Does not promise active enforcement, remaining usage, or exhaustion |
-| Password start/stop | Embedded help and lock errors | Pro and settings restrictions; standard-account behavior pending |
-| CLI alongside running CT | Not executed | Test with normal Mac UI/background components running |
-| Usage definition | Documented | Foreground activity by default, configurable statistics behavior, mouse activity window; confirm installation behavior |
-| Independent exhaustion | Intended CT allowance behavior | Must observe with orchestration absent |
-| Repeat grants / overlapping presets | No runtime evidence | Reset, accumulation, and precedence unknown |
-| Midnight renewal | Documented daily continuous allowance period | Likely conflicts with one-shot grants; live gate remains open |
-| Sleep and logout/login | No runtime evidence | Usage persistence and renewal pending |
+macOS uses `~/Library/Application Support/Steward Cold Turkey/` containing `config.json`, `logs/`, and `imports/`. Choose **Open data folder** to open it in Finder. Data is per user and shared by copies of the app, survives app replacement, and is never written into the signed bundle. Config imports preserve agentId and instanceId, keep the source, and refuse to overwrite an existing config. Stop the old agent before importing its locked config.
 
-The vendor describes foreground counting by default, a three-minute mouse-activity window, configurable statistics behavior, and midnight-based continuous allowances. Its UI supports full-block import/export; website-list text export is a different feature. These facts are documentation evidence, not observations of this installation. Source: [Cold Turkey user guide](https://getcoldturkey.com/support/user-guide/), accessed 2026-11-03.
+Windows/source runs outside macOS retain executable-local config and imports. On macOS all runs use Application Support. Config contains device-derived editable agentId, a persistent generated instanceId UUID, host, port, tls, and optional username/password. Connection settings retains IDs and offers saved values as defaults. Stop before editing config. No persistent resource inventory or duplicate-request history is stored.
 
-## Binary inspection
+Moving an installed app requires uninstalling login startup before moving and reinstalling afterward; the OS entry stores an absolute executable path. Data stays in Application Support. Moving to a new computer requires separate data transfer and review of agent identity to avoid conflicting registrations.
 
-Input: attached `Cold Turkey Blocker` executable, not copied into this repository.
-SHA-256: `38be42c0ce7901fe733683f328e9364bfde03cc0b2bada3ba8968d8e3759c972`.
-Mach-O universal binary: x86_64 slice offset `0x4000`, length `1986272`; arm64 slice offset `0x1ec000`, length `1805072`. Linux cannot execute this macOS application. Installed Mac version and binary equivalence remain unknown.
+## Menu and commands
 
-Read-only inspection parsed Mach-O headers/symbol tables and printable strings. Relevant x86_64 absolute file offsets:
+The menu offers connection settings, new managed resource, additional allowance options, finish import, background start/stop/restart, login install/uninstall, List resources, MQTT test, Doctor, Open data folder, and Import existing config. Closing the menu leaves the background agent running. Startup runs `background` explicitly and never opens Terminal.
 
-| Offset | Evidence |
-| --- | --- |
-| `0x19ed60` | CLI help introduction, advertising `-help` |
-| `0x19fef0` | Error for trying to stop a locked block via CLI |
-| `0x199470` | Full-block export UI label |
-| `0x19a4b0` | `blocksToImportString` |
-| `0x1a8065` | `blockAllowance` |
-| `0x1a88a6` | `allowances` |
-| `0x1ab920` | `application:openFile:` selector |
-| `0x1ac84a` | `setAllowedFileTypes:` selector |
-
-These selectors do not establish that opening a file imports it, or that import is unattended. Embedded default block data is not a validated export schema. No command-handler control-flow proof or complete reverse engineering is claimed. Do not use internal database paths or edit CT live files.
-
-To reproduce the narrow help inspection locally (binary stays outside git):
+Direct macOS command example:
 
 ```sh
-shasum -a 256 '/path/to/Cold Turkey Blocker'
-file '/path/to/Cold Turkey Blocker'
-strings '/path/to/Cold Turkey Blocker' | rg -A 100 'Print available command line arguments'
-strings '/path/to/Cold Turkey Blocker' | rg 'blocksToImportString|Export all blocks|blockAllowance|application:openFile:'
+"/Applications/Steward Cold Turkey.app/Contents/MacOS/Steward.ColdTurkeyAgent" run
 ```
 
-## Design gates and alternatives
+Other arguments: `menu`, `setup`, `configure`, `create-resource`, `finish-resource`, `add-allowances`, `list-resources`, `doctor`, `mqtt-test` (alias `mqtt-check`), `open-data`, `import-config --file PATH`, `start`, `stop`, `restart`, `login-install`, `login-uninstall`, `generate-presets --manifest PATH`, `help`.
 
-Evidence may include explicit user verification, distinguished from assistant-run tests. The updated design records confirmations. Gates:
+MQTT test only establishes its own process's broker connection, not background connectivity or server registration. Stop the running agent before MQTT testing because config is exclusively locked. Doctor and List resources are read-only and do not need config. List resources is a fresh CT scan; restart a running agent to refresh its cached inventory.
 
-1. Starting the replacement before stopping the previous block never creates an unprotected state, including interruption at either step.
-2. CT exhausts usage and blocks with the agent absent.
-3. Restarting/reusing/alternating presets and crossing midnight do not create unapproved allowances.
-4. Login-only credential exposure and invocation rights are understood and accepted.
+## Cold Turkey resources
 
-If midnight renewal behaves as documented, a permanently enabled daily preset is unsuitable for a one-shot grant. Discuss a verified CT-native one-shot mechanism (if one exists), different grant semantics, or another enforcement integration. Scheduled allowances are not an established solution: schedule endings and subsequent recurrence need separate safety proof. Do not silently introduce a privileged helper or rely on a later agent callback.
+Discovery accepts exact `§teward-` website/app groups, matching baseline plus valid allowance presets. New names use four-digit minutes, for example `§teward-Example-0005`. Legacy unpadded names are accepted when unambiguous; ordinary/device blocks are untouched. Alpha.4 fixed ANSI-colored headings.
 
-Login-only operation puts the controller and managed user in the same account boundary. A centrally stored password must still reach the local invocation if the CLI requires it; passwords in process arguments may be observable. A keychain or private file should not be assumed to prevent the same account from using an authorized credential. Exact process visibility, keychain access behavior, and CT authorization remain live questions. Never record passwords in command transcripts, repository files, or shared exports.
+Create a resource, import its baseline-named `.ctbbl`, set baseline autostart manually to 03:30 every day, confirm 03:45 preset refill and disabled presets, then finish setup. URLs lose HTTP(S) prefixes and trailing slashes; new resources include `file://*.*` by default. App identifier entry: `Bfxr.app:com.increpare.bfxr`; setup adds `app:` (manifest uses full prefix).
 
-A subsequent milestone must define usage grants, stable grant IDs/idempotency, remaining usage, multiple grants, renewal boundaries, reporting, and accounting. Steward's existing `AllowedUntil` is an absolute timestamp and is not equivalent to usage minutes. No protocol changes are made here.
+To add allowances, stop the agent and supply a current CT export of the chosen resource. Only new disabled presets are exported. Actual targets/exceptions are preserved, incompatible/custom scope is rejected, and baseline/existing presets are not overwritten or cycled. Restart after any CT changes. Imports are disposable.
 
-Experimental scripts and raw evidence belong only under ignored `/tests/cold-turkey/` or outside the repository. Do not commit the commercial executable, credentials, or personal exports.
+## Build and validation
 
-## Development setup
+```sh
+python3 scripts/package_release.py --runtime osx-arm64
+```
 
-This repository will consume `Steward.Messaging` as an exact-version NuGet dependency, not a cross-repository project reference. See the [package build and restore instructions](https://github.com/Minimistro32/steward/blob/main/src/Steward.Messaging/README.md) in the sibling Steward checkout. The initial local version is `0.1.0-alpha.1`; it has not been published to a registry. No production agent project is scaffolded yet.
+Also supports `osx-x64` and `win-x64`. Always publishes fresh, refuses archive overwrite, and excludes config/import/log data. macOS managed assemblies are embedded to avoid codesign rejecting loose DLLs. Windows packaging remains unchanged. `scripts/build_icon.cjs` regenerates the checked-in `.icns` from the supplied SVG using `@resvg/resvg-js`; rendering is not needed for ordinary packaging.
 
-Keep experimental tests in ignored `/tests/` and private exports, credentials, and commercial binaries in ignored `/local/` (or outside this repository). Never commit these inputs. The current messaging contract has absolute expiry only; usage-grant protocol work remains a separate milestone.
+Steward.Messaging remains pinned to 0.1.0-alpha.1. No server/protocol changes. Responses are published; server acceptance/usage exhaustion should not be inferred from local logs. Actual Windows runtime remains unverified. See docs/codex/next-session.md for current state and validation boundaries.

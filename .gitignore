@@ -11,3 +11,7 @@
 .env.*
 *.log
 .DS_Store
+
+# Agent runtime configuration and disposable imports
+config.json
+*.ctbbl

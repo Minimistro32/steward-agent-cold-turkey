@@ -1,0 +1,39 @@
+Steward Cold Turkey — install and use
+
+1. If upgrading alpha.7 or earlier: uninstall login startup from the OLD folder
+   and stop any foreground agent. Keep its config.json for import.
+2. Drag Steward Cold Turkey.app to Applications. If you cannot write there, copy
+   it to ~/Applications (create that folder if necessary). Do not run/install login
+   startup from the disk image. Eject the image after copying.
+3. Double-click the installed app. It opens the menu in Terminal. No separate
+   Open Steward.command is needed. Closing the menu leaves the agent running.
+4. Choose Import existing config and enter the old config.json path, or use
+   Connection settings to create a new one. Import preserves IDs and refuses to
+   overwrite existing data. Existing CT blocks need no reimport.
+5. Choose Install login startup. If asked, allow Local Network access. Check the
+   logs for MQTT connected / Ready for grants, then test with Terminal closed.
+
+Data lives here (outside the signed app):
+~/Library/Application Support/Steward Cold Turkey/
+  config.json
+  logs/
+  imports/
+
+Open data folder in the menu opens Finder there. Stop before changing config or
+resources; then Start. After direct CT edits choose Restart. No settings are
+stored inside the app. One configuration per macOS user is shared by app copies.
+
+Connection settings rewrites known JSON fields but preserves agentId/instanceId.
+Import keeps the original file and never overwrites an existing destination.
+Deleting/replacing the app does not delete its data. Moving to another computer
+requires transferring this data separately; review agentId/instanceId for a new
+independent installation. Do not run two computers as the same agent identity.
+
+Moving the app: uninstall login startup BEFORE moving, then reinstall afterward.
+Updating at the same location: stop, replace the app, then start. If changing the
+startup command/registration format, follow the release's reinstall instructions.
+Uninstall: use Uninstall login startup, then remove the app. Data remains.
+
+The app is Developer ID-signed only after the publisher completes signing.
+Notarization is deferred; macOS may require normal software approval. A DMG does
+not itself remove Gatekeeper restrictions. Do not change files inside the app.

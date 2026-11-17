@@ -1,0 +1,45 @@
+Steward Cold Turkey — Developer ID preparation
+
+This archive was built on Linux. It contains the app and scripts to finish signing
+and DMG creation on your Mac. It is not yet Developer ID-signed or notarized.
+Your private key stays in your Mac's Keychain; do not upload it anywhere.
+
+Certificate (once):
+1. Keychain Access > Certificate Assistant > Request a Certificate From a
+   Certificate Authority. Enter email/name, leave CA email blank, save to disk.
+2. developer.apple.com/account > Certificates > + > Developer ID Application.
+   Upload the request, generate and download the .cer.
+3. Open the .cer on the SAME Mac. In My Certificates the Developer ID Application
+   certificate must expand to show its private key.
+4. Verify with: security find-identity -v -p codesigning
+   Apple Development/Apple Distribution/Developer ID Installer are not accepted.
+Official instructions:
+https://developer.apple.com/help/account/certificates/create-developer-id-certificates
+
+Build the distributable (each release):
+1. Extract this archive into a writable folder. Stop any running copy there.
+2. Double-click Sign Steward.command. It lists usable Developer ID Application
+   identities and asks you to choose if there is more than one. Keychain may ask
+   permission to use your private key. An internet connection is needed for Apple's
+   secure timestamp. No sudo or private-key export is required.
+3. Wait for Developer ID signature verified. Failure stops the script; there is
+   no ad-hoc fallback. Signing enables hardened runtime with the .NET JIT
+   entitlement. No library-validation bypass or debugging entitlements are used.
+4. Double-click Create DMG.command. It verifies the signed app, creates a compressed
+   image containing the app, an Applications shortcut and INSTALL.txt, and writes
+   a SHA-256 checksum. Existing output is never overwritten.
+5. Distribute the generated DMG. Recipients do not need your certificate or a
+   signing script. This release is NOT notarized; normal macOS approval may still
+   be required. Developer ID signing alone does not guarantee a Gatekeeper pass.
+
+Read INSTALL.txt for migration and use. Do not modify the bundle after signing.
+
+Timestamp troubleshooting:
+If signing reports "A timestamp was expected but was not found", preserve the
+output. On alpha.8 (2026-11-17), it failed even on hotspot, but subsequent manual
+signing with --verbose=4 and the Developer ID certificate NAME succeeded and
+passed strict verification with an Apple timestamp. The script uses the valid
+fingerprint selection form; the cause was not isolated. Do not disable timestamps
+or regenerate certificates solely on this evidence. Maintainer instructions and
+the exact successful command are in docs/signing-troubleshooting.md in the source
+repository. This incident does not establish a guaranteed workaround.

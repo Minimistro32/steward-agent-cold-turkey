@@ -1,6 +1,6 @@
 # Command Line Parameters
 
-Evidence: embedded help in the supplied Mach-O executable; not executed on the target Mac. See [feasibility findings](README.md) for provenance and limitations. The initial verb requires a leading dash in the embedded syntax. Use `-help` to compare the installed version.
+Evidence: embedded help in the supplied Mach-O executable. The user has since run -list-blocks and -status on macOS; see verification.md. See [feasibility findings](codex/feasibility.md) for provenance and limitations. The initial verb requires a leading dash in the embedded syntax. Use `-help` to compare the installed version.
 
 To run Blocker from the command line on Windows, please close the interface by pressing X and then right click the system tray icon and select exit.
 

@@ -1,0 +1,7 @@
+{
+  "agentId": "Cold-Turkey-My-Laptop",
+  "instanceId": "f30b2549-6fd9-46bb-9c28-42c610560bfa",
+  "host": "192.168.50.60",
+  "port": 1883,
+  "tls": false
+}
